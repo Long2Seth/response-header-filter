@@ -1,0 +1,38 @@
+server:
+  port: 8082
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:2345/product-service
+    username: piseth@12345
+    password: 123456
+  application:
+    name: product-service
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    generate-ddl: true
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8083/eureka
+  instance:
+    instance-id: ${spring.cloud.client.hostname}:${spring.application.name}:${random.value}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  security:
+    enabled: false
+
+
+  logging:
+    level:
+      org.springframework.web.filter: DEBUG
+      com.example.filter.HeaderLoggingFilter: DEBUG
+
+
