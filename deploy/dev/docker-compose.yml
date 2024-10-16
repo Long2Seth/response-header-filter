@@ -1,0 +1,99 @@
+services:
+  # Postgres service
+  postgres:
+    image: postgres:latest
+    container_name: postgres-db
+    environment:
+      POSTGRES_USER: "piseth@123"
+      POSTGRES_PASSWORD: "ps123"
+      POSTGRES_DB: "product-service-db"
+    ports:
+      - "5430:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER}" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Vault service
+  vault:
+    image: vault:1.9.0
+    container_name: vault
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: "piseth-vault"
+      VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
+    ports:
+      - "8200:8200"
+    networks:
+      - app-network
+    command: "vault server -dev -dev-root-token-id=root"
+    cap_add:
+      - IPC_LOCK
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8200/v1/sys/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Discovery Service (Eureka)
+  discovery-service:
+    image: discovery-service
+    container_name: discovery-service
+    build:
+      context: ../../discovery-service
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+    ports:
+      - "8085:8083"
+    networks:
+      - app-network
+    depends_on:
+      - postgres
+      - vault
+    security_opt:
+      - apparmor=unconfined  # Disable AppArmor for this service
+
+  # Gateway Service
+  gateway-service:
+    image: gateway-service
+    container_name: gateway-service
+    build:
+      context: ../../getway-api  # Updated path relative to deploy/dev
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network
+    depends_on:
+      - discovery-service
+      - postgres
+      - vault
+
+#  # Product Service
+  product-service:
+    image: product-service
+    container_name: product-service
+    build:
+      context: ../../product-service  # Updated path relative to deploy/dev
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+    ports:
+      - "8082:8082"
+    networks:
+      - app-network
+    depends_on:
+      - discovery-service
+      - postgres
+      - vault
+
+volumes:
+  postgres-data:
+
+networks:
+  app-network:
+    driver: bridge

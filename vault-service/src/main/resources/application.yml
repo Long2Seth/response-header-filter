@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: vault-service
+
+  profiles:
+    active:
+      - vault
+      - git
+
+  cloud:
+    config:
+      server:
+        vault:
+          host: localhost
+          port: 8200
+          scheme: http
+          authentication: token
+          token: root
+          kvVersion: 2
+          backend: secret
+          skipSslValidation: true
+
+        git:
+          uri: https://github.com/Long2Seth/config.git
+
+
+server:
+  port: 9090
